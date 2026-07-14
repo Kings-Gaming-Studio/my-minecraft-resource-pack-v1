@@ -1,0 +1,14 @@
+{
+  "pack": {
+    "min_format": [
+      88,
+      0
+    ],
+    "max_format": [
+      88,
+      0
+    ],
+    "description": "Used with the Vanilla+ family of data packs.",
+    "pack_format": 88
+  }
+}
