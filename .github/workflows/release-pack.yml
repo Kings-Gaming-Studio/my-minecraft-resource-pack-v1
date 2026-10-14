@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 20
+          fetch-tags: true
 
       - name: Build pack
         run: bash scripts/build-pack.sh
@@ -26,8 +29,18 @@ jobs:
         run: |
           SHA1=$(cat dist/KPG-ResourcePack.sha1)
           TAG="pack-${GITHUB_SHA::7}"
+          # Fill RELEASE_NOTES.md: the SHA-1, plus commit titles since the last pack release.
+          PREV=$(git describe --tags --abbrev=0 --match 'pack-*' HEAD^ 2>/dev/null || true)
+          CHANGES=$(git log --no-merges --format='- %s' ${PREV:+$PREV..}HEAD | head -20)
+          python3 - "$SHA1" "$CHANGES" <<'PY'
+          import sys, pathlib
+          sha1, changes = sys.argv[1], sys.argv[2]
+          text = pathlib.Path("RELEASE_NOTES.md").read_text()
+          text = text.replace("{{SHA1}}", sha1).replace("{{CHANGES}}", changes)
+          pathlib.Path("dist/notes.md").write_text(text)
+          PY
           gh release create "$TAG" dist/KPG-ResourcePack.zip dist/KPG-ResourcePack.sha1 \
-            --title "Resource pack $TAG" \
-            --notes "Put this in server.properties: resource-pack-sha1=$SHA1" \
+            --title "KPG Resource Pack $TAG" \
+            --notes-file dist/notes.md \
             --latest
           echo "### resource-pack-sha1=$SHA1" >> "$GITHUB_STEP_SUMMARY"
